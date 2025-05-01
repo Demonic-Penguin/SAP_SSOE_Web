@@ -1,0 +1,58 @@
+/* Custom styles for the SAP Service Order Automation tool */
+
+/* Add some padding to the body */
+body {
+    padding-bottom: 2rem;
+}
+
+/* Card styling */
+.card {
+    margin-bottom: 1.5rem;
+}
+
+/* Make form inputs a bit larger */
+.form-control {
+    padding: 0.5rem 0.75rem;
+}
+
+/* Add a hover effect to buttons */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for the progress bar */
+.progress {
+    height: 0.75rem;
+    border-radius: 0.5rem;
+}
+
+/* Custom styling for the wizard steps */
+.wizard-step-indicator {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+}
+
+/* Add some spacing to form elements */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Style the alerts */
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Footer styling */
+footer {
+    margin-top: 3rem;
+}
