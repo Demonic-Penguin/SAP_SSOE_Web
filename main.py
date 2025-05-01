@@ -1,12 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os
 import sys
+import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
 # Import the SAP Service Order Automation class
 from sap_service_order_automation import SapServiceAutomation
+
+# Global context processor to add date to all templates
+@app.context_processor
+def inject_now():
+    return {'now': datetime.datetime.now().strftime('%Y-%m-%d')}
 
 # Configure routes
 @app.route('/')
