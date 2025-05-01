@@ -1,15 +1,7 @@
-"""
-SAP-Enabled Web Application
-This version of the main application will try to connect to a real SAP system when running on Windows
-"""
-
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for
 import os
 import sys
 import datetime
-import platform
-import threading
-import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
@@ -17,87 +9,16 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 # Import the SAP Service Order Automation class
 from sap_service_order_automation import SapServiceAutomation
 
-# Global SAP connection - will be initialized if possible
-SAP_CONNECTION = None
-SAP_CONNECTION_LOCK = threading.Lock()
-IS_WINDOWS = platform.system() == "Windows"
-
-# Initialize SAP connection if running on Windows
-def init_sap_connection():
-    global SAP_CONNECTION
-    
-    with SAP_CONNECTION_LOCK:
-        if SAP_CONNECTION is not None:
-            return SAP_CONNECTION
-        
-        try:
-            print("Attempting to connect to SAP...")
-            # Try to import win32com
-            if IS_WINDOWS:
-                try:
-                    import win32com.client
-                    # Create SAP connection with mock mode disabled
-                    sap = SapServiceAutomation(use_mock=False)
-                    
-                    # Test the connection
-                    if sap.connect_to_sap():
-                        print(f"Successfully connected to SAP as user: {sap.username}")
-                        SAP_CONNECTION = sap
-                    else:
-                        print("Could not connect to SAP. Using simulation mode.")
-                        SAP_CONNECTION = SapServiceAutomation(use_mock=True)
-                except ImportError:
-                    print("win32com.client module not available. Using simulation mode.")
-                    SAP_CONNECTION = SapServiceAutomation(use_mock=True)
-            else:
-                print("Not running on Windows. Using simulation mode.")
-                SAP_CONNECTION = SapServiceAutomation(use_mock=True)
-        except Exception as e:
-            print(f"Error initializing SAP connection: {e}")
-            SAP_CONNECTION = SapServiceAutomation(use_mock=True)
-    
-    return SAP_CONNECTION
-
-# Initialize SAP connection in a background thread to avoid blocking the Flask app startup
-def background_init_sap():
-    init_sap_connection()
-
-# Start SAP initialization in background
-threading.Thread(target=background_init_sap).start()
-
 # Global context processor to add date to all templates
 @app.context_processor
 def inject_now():
-    return {
-        'now': datetime.datetime.now().strftime('%Y-%m-%d'),
-        'sap_mode': 'SAP Connected' if SAP_CONNECTION and not SAP_CONNECTION.use_mock else 'Simulation Mode'
-    }
+    return {'now': datetime.datetime.now().strftime('%Y-%m-%d')}
 
 # Configure routes
 @app.route('/')
 def index():
     """Render the main web interface"""
-    sap_status = "Connected to SAP" if SAP_CONNECTION and not SAP_CONNECTION.use_mock else "Simulation Mode"
-    return render_template('index.html', sap_status=sap_status)
-
-@app.route('/sap_status')
-def sap_status():
-    """Check SAP connection status"""
-    if SAP_CONNECTION is None:
-        return jsonify({
-            'status': 'initializing',
-            'message': 'SAP connection is being initialized...'
-        })
-    elif SAP_CONNECTION.use_mock:
-        return jsonify({
-            'status': 'simulation',
-            'message': 'Running in simulation mode'
-        })
-    else:
-        return jsonify({
-            'status': 'connected',
-            'message': f'Connected to SAP as user: {SAP_CONNECTION.username}'
-        })
+    return render_template('index.html')
 
 @app.route('/run_automation', methods=['POST'])
 def run_automation():
@@ -106,13 +27,8 @@ def run_automation():
     if not service_order:
         return redirect(url_for('index', error='Please enter a service order number'))
     
-    # Initialize SAP connection if not done yet
-    if SAP_CONNECTION is None:
-        init_sap_connection()
-    
     # Store the service order number in session for the wizard
     # (We'll use a query parameter for now as we're not setting up a database)
-    session['sap_mode'] = 'real' if SAP_CONNECTION and not SAP_CONNECTION.use_mock else 'simulation'
     return redirect(url_for('automation_wizard', service_order=service_order, step=1))
 
 @app.route('/automation_wizard')
@@ -197,15 +113,11 @@ def automation_wizard():
     if step > len(steps):
         return render_template('completion.html', service_order=service_order)
     
-    # Get SAP connection mode
-    sap_mode = session.get('sap_mode', 'simulation')
-    
     return render_template('wizard.html', 
                           service_order=service_order,
                           step_data=steps[step],
                           current_step=step,
-                          total_steps=len(steps),
-                          sap_mode=sap_mode)
+                          total_steps=len(steps))
 
 @app.route('/process_step', methods=['POST'])
 def process_step():
@@ -218,17 +130,6 @@ def process_step():
     if current_step == 3:  # Part number verification
         user_input = request.form.get('manual_input', '')
         expected = 'MK-12345'  # In a real app, this would be from SAP
-        
-        # If connected to real SAP, we would query it here
-        if SAP_CONNECTION and not SAP_CONNECTION.use_mock:
-            try:
-                # This would be actual SAP logic in a real integration
-                print(f"Verifying part number in SAP: {user_input}")
-                # Mock successful verification for this example
-                # In real integration, this would call SAP-specific methods
-            except Exception as e:
-                flash(f"Error communicating with SAP: {str(e)}", "error")
-        
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
@@ -242,8 +143,7 @@ def process_step():
                                       },
                                       current_step=current_step,
                                       total_steps=20,
-                                      retry=True,
-                                      sap_mode=session.get('sap_mode', 'simulation'))
+                                      retry=True)
             else:
                 # Second failure, exit the process
                 return render_template('error.html',
@@ -253,17 +153,6 @@ def process_step():
     if current_step == 4:  # Serial number verification
         user_input = request.form.get('manual_input', '')
         expected = 'SN987654'  # In a real app, this would be from SAP
-        
-        # If connected to real SAP, we would query it here
-        if SAP_CONNECTION and not SAP_CONNECTION.use_mock:
-            try:
-                # This would be actual SAP logic in a real integration
-                print(f"Verifying serial number in SAP: {user_input}")
-                # Mock successful verification for this example
-                # In real integration, this would call SAP-specific methods
-            except Exception as e:
-                flash(f"Error communicating with SAP: {str(e)}", "error")
-                
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
@@ -277,8 +166,7 @@ def process_step():
                                       },
                                       current_step=current_step,
                                       total_steps=20,
-                                      retry=True,
-                                      sap_mode=session.get('sap_mode', 'simulation'))
+                                      retry=True)
             else:
                 # Second failure, exit the process
                 return render_template('error.html',
@@ -327,17 +215,4 @@ def process_step():
     return redirect(url_for('automation_wizard', service_order=service_order, step=next_step))
 
 if __name__ == '__main__':
-    print(f"Starting SAP Service Order Automation Web Interface")
-    print(f"Platform: {platform.system()}")
-    print(f"SAP Connection Mode: {'Real SAP (if available)' if IS_WINDOWS else 'Simulation Mode'}")
-    
-    # If we're on Windows, we display more information
-    if IS_WINDOWS:
-        try:
-            import win32com.client
-            print("SAP GUI automation is available (win32com.client imported successfully)")
-        except ImportError:
-            print("SAP GUI automation not available. Install pywin32 for SAP integration.")
-            print("  pip install pywin32")
-    
     app.run(host='0.0.0.0', port=5000, debug=True)

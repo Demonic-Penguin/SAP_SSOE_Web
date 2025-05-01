@@ -5,35 +5,6 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <!-- SAP Status Banner -->
-        <div class="card shadow-sm mb-4 {% if sap_status == 'Connected to SAP' %}border-success{% else %}border-info{% endif %}">
-            <div class="card-body p-2 d-flex align-items-center">
-                <div class="me-3">
-                    {% if sap_status == 'Connected to SAP' %}
-                    <i class="fas fa-plug text-success fa-2x"></i>
-                    {% else %}
-                    <i class="fas fa-laptop-code text-info fa-2x"></i>
-                    {% endif %}
-                </div>
-                <div>
-                    <h5 class="m-0">
-                        {% if sap_status == 'Connected to SAP' %}
-                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> SAP Connected</span>
-                        {% else %}
-                        <span class="badge bg-info text-dark"><i class="fas fa-desktop me-1"></i> Simulation Mode</span>
-                        {% endif %}
-                        <small class="text-muted ms-2">
-                            {% if sap_status == 'Connected to SAP' %}
-                            Using real SAP connection
-                            {% else %}
-                            Using simulated SAP environment
-                            {% endif %}
-                        </small>
-                    </h5>
-                </div>
-            </div>
-        </div>
-        
         <!-- Main Card with Animation -->
         <div class="card shadow-sm border-info mb-4 animate-card">
             <div class="card-header bg-dark text-white">
@@ -172,50 +143,6 @@
                 card.style.transform = 'translateY(0)';
             }, 100 * (index + 1));
         });
-        
-        // Check SAP connection status
-        checkSapStatus();
     });
-    
-    // Function to check SAP connection status
-    function checkSapStatus() {
-        fetch('/sap_status')
-            .then(response => response.json())
-            .then(data => {
-                const statusBanner = document.querySelector('.card:first-child');
-                const statusIcon = statusBanner.querySelector('i:first-child');
-                const statusBadge = statusBanner.querySelector('.badge');
-                const statusText = statusBanner.querySelector('small');
-                
-                if (data.status === 'connected') {
-                    statusBanner.classList.remove('border-info');
-                    statusBanner.classList.add('border-success');
-                    statusIcon.className = 'fas fa-plug text-success fa-2x';
-                    statusBadge.className = 'badge bg-success';
-                    statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i> SAP Connected';
-                    statusText.textContent = 'Using real SAP connection';
-                } else if (data.status === 'initializing') {
-                    statusBanner.classList.remove('border-success', 'border-info');
-                    statusBanner.classList.add('border-warning');
-                    statusIcon.className = 'fas fa-spinner fa-spin text-warning fa-2x';
-                    statusBadge.className = 'badge bg-warning text-dark';
-                    statusBadge.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Connecting...';
-                    statusText.textContent = 'Attempting to connect to SAP';
-                    
-                    // Check again in 2 seconds
-                    setTimeout(checkSapStatus, 2000);
-                } else {
-                    statusBanner.classList.remove('border-success');
-                    statusBanner.classList.add('border-info');
-                    statusIcon.className = 'fas fa-laptop-code text-info fa-2x';
-                    statusBadge.className = 'badge bg-info text-dark';
-                    statusBadge.innerHTML = '<i class="fas fa-desktop me-1"></i> Simulation Mode';
-                    statusText.textContent = 'Using simulated SAP environment';
-                }
-            })
-            .catch(error => {
-                console.error('Error checking SAP status:', error);
-            });
-    }
 </script>
 {% endblock %}

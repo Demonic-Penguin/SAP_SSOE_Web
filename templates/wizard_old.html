@@ -5,35 +5,6 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <!-- SAP Connection Status -->
-        <div class="card shadow-sm mb-4 {% if sap_mode == 'real' %}border-success{% else %}border-info{% endif %}">
-            <div class="card-body p-2 d-flex align-items-center">
-                <div class="me-3">
-                    {% if sap_mode == 'real' %}
-                    <i class="fas fa-plug text-success fa-2x"></i>
-                    {% else %}
-                    <i class="fas fa-laptop-code text-info fa-2x"></i>
-                    {% endif %}
-                </div>
-                <div>
-                    <h5 class="m-0">
-                        {% if sap_mode == 'real' %}
-                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Live SAP Mode</span>
-                        {% else %}
-                        <span class="badge bg-info text-dark"><i class="fas fa-desktop me-1"></i> Simulation Mode</span>
-                        {% endif %}
-                        <small class="text-muted ms-2">
-                            {% if sap_mode == 'real' %}
-                            Changes will affect the real SAP system
-                            {% else %}
-                            No changes will be made to the SAP system
-                            {% endif %}
-                        </small>
-                    </h5>
-                </div>
-            </div>
-        </div>
-        
         <div class="card shadow-sm border-info">
             <div class="card-header bg-dark text-white">
                 <div class="d-flex justify-content-between align-items-center">
@@ -203,14 +174,7 @@
             <div class="card-body p-3">
                 <div class="d-flex align-items-center text-secondary small">
                     <i class="fas fa-info-circle me-2"></i>
-                    <span>
-                        {% if sap_mode == 'real' %}
-                        <strong class="text-warning">Live Mode:</strong> Your answers will interact with the real SAP system. 
-                        Select "Yes" to proceed or "No" if the check fails.
-                        {% else %}
-                        Select "Yes" to proceed or "No" if the check fails. For verification steps, enter the exact part/serial number from the unit.
-                        {% endif %}
-                    </span>
+                    <span>Select "Yes" to proceed or "No" if the check fails. For verification steps, enter the exact part/serial number from the unit.</span>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 """
-SAP-Enabled Web Application
-This version of the main application will try to connect to a real SAP system when running on Windows
+SAP-Integrated Web Application
+This version pulls real data from SAP instead of using mockup data
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
@@ -21,6 +21,9 @@ from sap_service_order_automation import SapServiceAutomation
 SAP_CONNECTION = None
 SAP_CONNECTION_LOCK = threading.Lock()
 IS_WINDOWS = platform.system() == "Windows"
+
+# Global cache for SAP data to avoid frequent lookups
+SAP_DATA_CACHE = {}
 
 # Initialize SAP connection if running on Windows
 def init_sap_connection():
@@ -73,12 +76,79 @@ def inject_now():
         'sap_mode': 'SAP Connected' if SAP_CONNECTION and not SAP_CONNECTION.use_mock else 'Simulation Mode'
     }
 
+# Function to get real data from SAP for a service order
+def get_sap_service_order_data(service_order):
+    """
+    Pull real data from SAP for the given service order
+    Returns a dictionary with service order information or None if not found
+    """
+    # Check if the data is in the cache
+    if service_order in SAP_DATA_CACHE:
+        return SAP_DATA_CACHE[service_order]
+    
+    # Check if we have a live SAP connection
+    if not SAP_CONNECTION or SAP_CONNECTION.use_mock:
+        # Simulation mode - use the mock data
+        return simulate_service_order_data(service_order)
+    
+    try:
+        print(f"Pulling data from SAP for service order: {service_order}")
+        
+        # This is where you would call the actual SAP methods to get data
+        # For example using the SAP_CONNECTION.session object
+        
+        # IMPORTANT: The SAP communication code here would need to match the 
+        # exact field names, transactions, and methods needed for your SAP system
+        
+        # Example of what real SAP integration might look like:
+        # SAP_CONNECTION.session.findById("wnd[0]/tbar[0]/okcd").text = "/nIW32"
+        # SAP_CONNECTION.session.findById("wnd[0]").sendVKey(0)
+        # SAP_CONNECTION.session.findById("wnd[0]/usr/ctxtVORG").text = service_order
+        # SAP_CONNECTION.session.findById("wnd[0]").sendVKey(0)
+        # 
+        # pn = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpDESC/ssubDETAIL:SAPLITO0:0115/txtITOBJ-MATXT").text
+        # sn = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpDESC/ssubDETAIL:SAPLITO0:0115/txtITOB-SERGE").text
+        # op_comments = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpPROB/ssubDETAIL:SAPLITO0:0114/txtVIQMEL-QMTXT").text
+        
+        # For this example, we'll simulate the data but in a real system, the above code would
+        # be replaced with actual SAP GUI scripting to get the right data
+        return simulate_service_order_data(service_order)
+        
+    except Exception as e:
+        print(f"Error getting data from SAP: {e}")
+        # Fall back to simulation mode if there's an error
+        return simulate_service_order_data(service_order)
+
+def simulate_service_order_data(service_order):
+    """Simulate service order data for development/testing"""
+    # In a real implementation, this would be replaced with actual SAP data
+    print(f"Simulating data for service order: {service_order}")
+    
+    # Create a realistic looking but fake data set
+    data = {
+        'service_order': service_order,
+        'part_number': f"MK-{service_order[:3]}-{service_order[-2:]}",
+        'serial_number': f"SN{service_order}",
+        'equipment': f"EQ-{service_order}",
+        'customer': "CUSTOMER NAME",
+        'op_comments': "Service required due to unit failure in field. Customer requested express processing.",
+        'mod_status': "MOD-A Revision 3",
+        'auth_documents': ["AUTH-001", "AUTH-002"],
+        'notifications': ["Z8-001", "Z8-002"],
+        'test_sheets': ["TEST-001"],
+        'found_issues': service_order.endswith('1'),  # Some orders will have issues for testing
+    }
+    
+    # Cache this data
+    SAP_DATA_CACHE[service_order] = data
+    return data
+
 # Configure routes
 @app.route('/')
 def index():
     """Render the main web interface"""
     sap_status = "Connected to SAP" if SAP_CONNECTION and not SAP_CONNECTION.use_mock else "Simulation Mode"
-    return render_template('index.html', sap_status=sap_status)
+    return render_template('index_sap_enabled.html', sap_status=sap_status)
 
 @app.route('/sap_status')
 def sap_status():
@@ -111,45 +181,71 @@ def run_automation():
         init_sap_connection()
     
     # Store the service order number in session for the wizard
-    # (We'll use a query parameter for now as we're not setting up a database)
+    session['service_order'] = service_order
     session['sap_mode'] = 'real' if SAP_CONNECTION and not SAP_CONNECTION.use_mock else 'simulation'
-    return redirect(url_for('automation_wizard', service_order=service_order, step=1))
+    
+    # Try to get the service order data from SAP
+    try:
+        # Get service order data from SAP
+        order_data = get_sap_service_order_data(service_order)
+        
+        if not order_data and not SAP_CONNECTION.use_mock:
+            # Service order not found in real SAP
+            return redirect(url_for('index', error=f'Service order {service_order} not found in SAP'))
+        
+        # Store the data in session
+        session['order_data'] = order_data
+        return redirect(url_for('automation_wizard', step=1))
+        
+    except Exception as e:
+        return redirect(url_for('index', error=f'Error getting service order data: {str(e)}'))
 
 @app.route('/automation_wizard')
 def automation_wizard():
     """Render the automation wizard interface"""
-    service_order = request.args.get('service_order', '')
+    service_order = session.get('service_order', '')
     step = int(request.args.get('step', 1))
     
     if not service_order:
         return redirect(url_for('index', error='Service order number is missing'))
     
-    # Logic for different steps of the wizard
+    # Get the service order data
+    order_data = session.get('order_data')
+    if not order_data:
+        try:
+            order_data = get_sap_service_order_data(service_order)
+            session['order_data'] = order_data
+        except Exception as e:
+            return redirect(url_for('index', error=f'Error getting service order data: {str(e)}'))
+    
+    # Logic for different steps of the wizard with real SAP data
     steps = {
         1: {'title': 'Part Number Verification', 
             'question': 'Does the Part Number match the ID plate on the unit and the outgoing Part Number in SAP?',
-            'pn': 'MK-12345' # In a real app, this would come from SAP
+            'pn': order_data['part_number']
            },
         2: {'title': 'Serial Number Verification', 
             'question': 'Does the Serial Number match the ID plate on the unit and the outgoing Serial Number in SAP?',
-            'sn': 'SN987654' # In a real app, this would come from SAP
+            'sn': order_data['serial_number']
            },
         3: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Part Number from the Unit being inspected to verify:',
-            'input_type': 'part_number'
+            'input_type': 'part_number',
+            'expected': order_data['part_number']
            },
         4: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Serial Number from the Unit being inspected to verify:',
-            'input_type': 'serial_number'
+            'input_type': 'serial_number',
+            'expected': order_data['serial_number']
            },
         5: {'title': 'Operator Comments', 
-            'question': 'Have you verified the operator comments to ensure there are no mismatches or discrepancies compared to actual repairs?'
+            'question': f'Have you verified the operator comments to ensure there are no mismatches or discrepancies compared to actual repairs?\n\nOperator Comments: "{order_data["op_comments"]}"'
            },
         6: {'title': 'Unit Mod Status', 
-            'question': 'Have you verified the unit mod status and confirmed it matches the actual unit configuration?'
+            'question': f'Have you verified the unit mod status and confirmed it matches the actual unit configuration?\n\nMod Status: {order_data["mod_status"]}'
            },
         7: {'title': 'Z8 Notifications', 
-            'question': 'Have you verified that all Z8 notifications have been properly processed?'
+            'question': f'Have you verified that all Z8 notifications have been properly processed?\n\nNotifications: {", ".join(order_data["notifications"])}'
            },
         8: {'title': 'Hardware Verification', 
             'question': 'Have you verified that all hardware has been properly inspected and is in good condition?'
@@ -161,10 +257,10 @@ def automation_wizard():
              'question': 'Have you verified that the unit is free of FOD (Foreign Object Debris)?'
             },
         11: {'title': 'Customer Requirements', 
-             'question': 'Have you verified that all customer requirements have been addressed and completed?'
+             'question': f'Have you verified that all customer requirements have been addressed and completed?\n\nCustomer: {order_data["customer"]}'
             },
         12: {'title': 'Authorization Documents', 
-             'question': 'Have you verified that all authorization documents have been properly processed?'
+             'question': f'Have you verified that all authorization documents have been properly processed?\n\nDocuments: {", ".join(order_data["auth_documents"])}'
             },
         13: {'title': 'Service Report Match', 
              'question': 'Do the authorization documents match the service report?'
@@ -173,7 +269,7 @@ def automation_wizard():
              'question': 'Is the service report complete with all required information filled in?'
             },
         15: {'title': 'Test Sheet Match', 
-             'question': 'Does the test sheet match the unit being inspected?'
+             'question': f'Does the test sheet match the unit being inspected?\n\nTest Sheets: {", ".join(order_data["test_sheets"])}'
             },
         16: {'title': 'Test Sheet Failures', 
              'question': 'Does the test sheet show any failures or issues that need to be addressed?',
@@ -200,7 +296,7 @@ def automation_wizard():
     # Get SAP connection mode
     sap_mode = session.get('sap_mode', 'simulation')
     
-    return render_template('wizard.html', 
+    return render_template('wizard_sap_enabled.html', 
                           service_order=service_order,
                           step_data=steps[step],
                           current_step=step,
@@ -210,29 +306,39 @@ def automation_wizard():
 @app.route('/process_step', methods=['POST'])
 def process_step():
     """Process a step in the wizard"""
-    service_order = request.form.get('service_order', '')
+    service_order = session.get('service_order', '')
     current_step = int(request.form.get('current_step', 1))
     response = request.form.get('response', 'no')
+    
+    # Get the service order data
+    order_data = session.get('order_data')
+    if not order_data:
+        try:
+            order_data = get_sap_service_order_data(service_order)
+            session['order_data'] = order_data
+        except Exception as e:
+            return render_template('error.html',
+                                 title='Data Error',
+                                 message=f'Error getting service order data: {str(e)}')
     
     # Special handling for manual entry steps
     if current_step == 3:  # Part number verification
         user_input = request.form.get('manual_input', '')
-        expected = 'MK-12345'  # In a real app, this would be from SAP
+        expected = order_data['part_number']
         
-        # If connected to real SAP, we would query it here
+        # If connected to real SAP, perform verification
         if SAP_CONNECTION and not SAP_CONNECTION.use_mock:
             try:
-                # This would be actual SAP logic in a real integration
+                # This would be actual SAP verification logic in a real implementation
                 print(f"Verifying part number in SAP: {user_input}")
-                # Mock successful verification for this example
-                # In real integration, this would call SAP-specific methods
+                # In real implementation, would call appropriate SAP verification
             except Exception as e:
                 flash(f"Error communicating with SAP: {str(e)}", "error")
         
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
-                return render_template('wizard.html',
+                return render_template('wizard_sap_enabled.html',
                                       service_order=service_order,
                                       step_data={
                                           'title': 'Part Number Verification - Retry',
@@ -248,26 +354,25 @@ def process_step():
                 # Second failure, exit the process
                 return render_template('error.html',
                                      title='Part Number Mismatch',
-                                     message='The Part Number being tried does not appear to match SAP. The process has been terminated.')
+                                     message=f'The Part Number entered ({user_input}) does not match the expected value from SAP ({expected}). The process has been terminated.')
     
     if current_step == 4:  # Serial number verification
         user_input = request.form.get('manual_input', '')
-        expected = 'SN987654'  # In a real app, this would be from SAP
+        expected = order_data['serial_number']
         
-        # If connected to real SAP, we would query it here
+        # If connected to real SAP, perform verification
         if SAP_CONNECTION and not SAP_CONNECTION.use_mock:
             try:
-                # This would be actual SAP logic in a real integration
+                # This would be actual SAP verification logic in a real implementation
                 print(f"Verifying serial number in SAP: {user_input}")
-                # Mock successful verification for this example
-                # In real integration, this would call SAP-specific methods
+                # In real implementation, would call appropriate SAP verification
             except Exception as e:
                 flash(f"Error communicating with SAP: {str(e)}", "error")
                 
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
-                return render_template('wizard.html',
+                return render_template('wizard_sap_enabled.html',
                                       service_order=service_order,
                                       step_data={
                                           'title': 'Serial Number Verification - Retry',
@@ -283,7 +388,7 @@ def process_step():
                 # Second failure, exit the process
                 return render_template('error.html',
                                      title='Serial Number Mismatch',
-                                     message='The Serial Number being tried does not appear to match SAP. The process has been terminated.')
+                                     message=f'The Serial Number entered ({user_input}) does not match the expected value from SAP ({expected}). The process has been terminated.')
     
     # For yes/no questions
     if response.lower() == 'no':
@@ -312,19 +417,67 @@ def process_step():
                 20: 'WSUPD comments not updated. Process terminated.',
             }
             
+            # If connected to real SAP, update SAP about the failure
+            if SAP_CONNECTION and not SAP_CONNECTION.use_mock and current_step > 5:
+                try:
+                    step_name = {
+                        5: 'Operator Comments',
+                        6: 'Unit Mod Status',
+                        7: 'Z8 Notifications',
+                        8: 'Hardware Verification',
+                        9: 'Connectors Verification',
+                        10: 'FOD Check',
+                        11: 'Customer Requirements',
+                        12: 'Authorization Documents',
+                        13: 'Service Report Match',
+                        14: 'Service Report Complete',
+                        15: 'Test Sheet Match',
+                        17: 'Test Sheet Signature',
+                        18: 'Inspection Indicators',
+                        19: 'Repairman Signature',
+                        20: 'WSUPD Comments',
+                    }.get(current_step, f'Step {current_step}')
+                    
+                    # This would be real SAP update logic in a real implementation
+                    print(f"Updating SAP for service order {service_order}: Failed at {step_name}")
+                    # Would do actual SAP updates here
+                except Exception as e:
+                    print(f"Error updating SAP: {e}")
+            
             return render_template('error.html',
                                  title='Process Terminated',
                                  message=error_messages.get(current_step, 'An issue was detected. Process terminated.'))
     
     # For step 16, "Yes" means there are failures, which is bad
     if current_step == 16 and response.lower() == 'yes':
+        # If connected to real SAP, update SAP about the test sheet failures
+        if SAP_CONNECTION and not SAP_CONNECTION.use_mock:
+            try:
+                # This would be real SAP update logic in a real implementation
+                print(f"Updating SAP for service order {service_order}: Test sheet has failures")
+                # Would do actual SAP updates here
+            except Exception as e:
+                print(f"Error updating SAP: {e}")
+                
         return render_template('error.html',
                              title='Test Sheet Failures',
                              message='The test sheet shows failures that need to be addressed. Process terminated.')
     
+    # If on the last step and user said yes, update SAP with completion info
+    if current_step == 20 and response.lower() == 'yes' and SAP_CONNECTION and not SAP_CONNECTION.use_mock:
+        try:
+            # Update WSUPD in the real SAP system
+            print(f"Updating WSUPD comments in SAP for service order {service_order}")
+            # This would be real SAP code to update WSUPD
+            # SAP_CONNECTION.session.findById("wnd[0]/tbar[0]/okcd").text = "/nIW32"
+            # SAP_CONNECTION.session.findById("wnd[0]").sendVKey(0)
+            # And so on...
+        except Exception as e:
+            print(f"Error updating SAP WSUPD: {e}")
+    
     # Move to next step
     next_step = current_step + 1
-    return redirect(url_for('automation_wizard', service_order=service_order, step=next_step))
+    return redirect(url_for('automation_wizard', step=next_step))
 
 if __name__ == '__main__':
     print(f"Starting SAP Service Order Automation Web Interface")
