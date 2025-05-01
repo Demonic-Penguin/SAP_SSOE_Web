@@ -1,0 +1,48 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["espeak-ng", "openssl", "postgresql"]
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Console"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Console"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = """
+python -c \"import sys; print(f'Python version: {sys.version}'); print('Checking dependencies:'); try: import win32com.client; print('win32com.client: Available'); except ImportError: print('win32com.client: Not available - this is critical for SAP GUI automation'); try: import pyttsx3; print('pyttsx3: Available'); except ImportError: print('pyttsx3: Not available - needed for voice feedback'); try: import tkinter; print('tkinter: Available'); except ImportError: print('tkinter: Not available - needed for UI dialogs'); print('
+Script structure analysis:'); with open('sap_service_order_automation.py', 'r') as f: content = f.read(); print(f'Script size: {len(content)} bytes'); print(f'Function count: {content.count('def ')}')\""""
+
+[[ports]]
+localPort = 5000
+externalPort = 80

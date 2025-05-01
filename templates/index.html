@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}SAP Service Order Automation - Start{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h2 class="h5 mb-0">Service Sheet of Excellence (SSOE) Process</h2>
+            </div>
+            <div class="card-body">
+                <p class="card-text">This tool guides you through the SSOE process for service orders in SAP, ensuring all required checks are completed.</p>
+                
+                {% if request.args.get('error') %}
+                <div class="alert alert-danger" role="alert">
+                    {{ request.args.get('error') }}
+                </div>
+                {% endif %}
+                
+                <form action="{{ url_for('run_automation') }}" method="post" class="mt-4">
+                    <div class="mb-3">
+                        <label for="service_order" class="form-label">Service Order Number</label>
+                        <input type="text" class="form-control" id="service_order" name="service_order" required placeholder="Enter service order number">
+                        <div class="form-text">Enter the service order number from SAP</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Start SSOE Process</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h2 class="h5 mb-0">About This Tool</h2>
+            </div>
+            <div class="card-body">
+                <p class="card-text">This web application provides a streamlined interface for the Service Sheet of Excellence (SSOE) process, which was originally implemented as a VBScript and has been converted to Python with a web interface.</p>
+                
+                <h3 class="h6 mt-3">Key Features:</h3>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Part number and serial number verification</li>
+                    <li class="list-group-item">Operator comments and unit mod status checks</li>
+                    <li class="list-group-item">Hardware and connector inspections</li>
+                    <li class="list-group-item">Authorization document verification</li>
+                    <li class="list-group-item">Service report and test sheet validation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
