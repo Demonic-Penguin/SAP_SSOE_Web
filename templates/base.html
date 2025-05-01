@@ -6,6 +6,8 @@
     <title>{% block title %}SAP Service Order Automation{% endblock %}</title>
     <!-- Replit-themed Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -13,8 +15,14 @@
     <header class="bg-dark text-white py-3 mb-4">
         <div class="container">
             <div class="d-flex align-items-center justify-content-between">
-                <h1 class="h4 mb-0">SAP Service Order Automation</h1>
-                <span class="badge bg-secondary">SSOE Process</span>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-cogs fa-2x me-3 text-info"></i>
+                    <h1 class="h4 mb-0">SAP Service Order Automation</h1>
+                </div>
+                <div>
+                    <span class="badge bg-info text-dark">SSOE Process</span>
+                    <span class="badge bg-secondary ms-2"><i class="fas fa-code"></i> Python Web</span>
+                </div>
             </div>
         </div>
     </header>
@@ -24,7 +32,17 @@
     </main>
 
     <footer class="container mt-5 py-3 text-center text-secondary border-top">
-        <p class="small">SAP Service Order Automation Tool - Converted from VBS to Python</p>
+        <div class="row">
+            <div class="col-md-4">
+                <p class="small mb-0"><i class="fas fa-code-branch"></i> Converted from VBS to Python</p>
+            </div>
+            <div class="col-md-4">
+                <p class="small mb-0"><i class="fas fa-tasks"></i> Service Sheet of Excellence</p>
+            </div>
+            <div class="col-md-4">
+                <p class="small mb-0"><i class="fas fa-calendar"></i> {{ now }}</p>
+            </div>
+        </div>
     </footer>
 
     <!-- Bootstrap JS and dependencies -->

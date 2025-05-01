@@ -5,29 +5,127 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow-sm border-danger">
+        <div class="card shadow-sm border-danger error-card">
             <div class="card-header bg-danger text-white">
-                <h2 class="h5 mb-0">{{ title }}</h2>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <h2 class="h5 mb-0">{{ title }}</h2>
+                </div>
             </div>
             <div class="card-body">
                 <div class="text-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-x-circle text-danger" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                    </svg>
+                    <div class="error-icon-container">
+                        <i class="fas fa-times-circle text-danger fa-5x"></i>
+                        <div class="error-pulse"></div>
+                    </div>
                 </div>
                 
-                <div class="alert alert-danger">
-                    <p class="mb-0">{{ message }}</p>
+                <div class="alert alert-danger mb-4">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="fas fa-exclamation-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h4 class="alert-heading">Process Terminated</h4>
+                            <p class="mb-0">{{ message }}</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <p class="card-text text-center">The SSOE process has been terminated due to the issue above. Please address the problem before trying again.</p>
+                <div class="card bg-dark mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="rounded-circle bg-danger bg-opacity-10 p-3">
+                                    <i class="fas fa-info-circle fa-2x text-danger"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="card-title text-danger">What Happened?</h5>
+                                <p class="card-text">The SSOE process has been terminated due to the issue above. This is a critical check that must be addressed before the process can continue.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
-                <div class="d-grid gap-2 mt-4">
-                    <a href="{{ url_for('index') }}" class="btn btn-primary">Start New SSOE Process</a>
+                <div class="card border-secondary mb-4">
+                    <div class="card-header bg-secondary bg-opacity-25">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-lightbulb me-2 text-warning"></i>
+                            <h5 class="mb-0">Suggested Actions:</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-check text-secondary me-3"></i>
+                                <span>Verify the information provided against the physical unit</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-check text-secondary me-3"></i>
+                                <span>Check the SAP system for the correct information</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-check text-secondary me-3"></i>
+                                <span>Address any discrepancies before restarting the process</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('index') }}" class="btn btn-danger btn-lg">
+                        <i class="fas fa-redo-alt me-2"></i>
+                        Start New SSOE Process
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.error-card {
+    animation: shakeError 0.5s ease-in-out;
+}
+
+.error-icon-container {
+    position: relative;
+    display: inline-block;
+    margin: 20px auto;
+}
+
+.error-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.2);
+    animation: errorPulse 2s infinite;
+}
+
+@keyframes errorPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.8;
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+}
+
+@keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+</style>
 {% endblock %}
