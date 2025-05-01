@@ -799,7 +799,7 @@ def main():
     """Main entry point"""
     # Create SAP automation instance
     # Automatically use mock mode in non-Windows environments
-    use_mock = sys.platform != "win32" or IN_REPLIT
+    use_mock = False
     
     app = SapServiceAutomation(use_mock=use_mock)
     
