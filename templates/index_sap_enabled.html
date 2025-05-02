@@ -74,9 +74,10 @@
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-info btn-lg text-dark fw-bold">
+                        <button type="submit" id="submitButton" class="btn btn-info btn-lg text-dark fw-bold">
                             <i class="fas fa-play-circle me-2"></i> Start SSOE Process
                         </button>
+                        <div id="loadingSpinner" class="spinner"></div>
                     </div>
                 </form>
             </div>
@@ -176,6 +177,44 @@
         // Check SAP connection status
         checkSapStatus();
     });
+
+    document.getElementById("automationForm").addEventListener("submit", function(event) {
+    event.preventDefault(); // Prevent default page reload
+
+    let serviceOrder = document.getElementById("serviceOrder").value.trim();
+    if (!serviceOrder) {
+        alert("Please enter a service order number.");
+        return;
+    }
+
+    document.getElementById("loadingSpinner").style.display = "inline-block"; // Show spinner
+    document.getElementById("submitButton").disabled = true; // Disable button
+
+    // Send data to Flask using fetch API
+    fetch("/run-automation", {
+        method: "POST",
+        body: JSON.stringify({ service_order: serviceOrder }),
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("loadingSpinner").style.display = "none"; // Hide spinner
+        document.getElementById("submitButton").disabled = false; // Re-enable button
+
+        if (data.success) {
+            alert("Automation completed successfully!");
+            // Redirect or update UI if needed
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        document.getElementById("loadingSpinner").style.display = "none"; // Hide spinner
+        document.getElementById("submitButton").disabled = false; // Re-enable button
+    });
+    });
+
     
     // Function to check SAP connection status
     function checkSapStatus() {

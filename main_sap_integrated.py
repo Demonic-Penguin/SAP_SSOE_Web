@@ -101,13 +101,23 @@ def get_sap_service_order_data(service_order):
         # exact field names, transactions, and methods needed for your SAP system
         
         # Example of what real SAP integration might look like:
-        # SAP_CONNECTION.session.findById("wnd[0]/tbar[0]/okcd").text = "/nIW32"
-        # SAP_CONNECTION.session.findById("wnd[0]").sendVKey(0)
+        SAP_CONNECTION.session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/"
+                         "subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpEQUIPMENT_H").select()
+        SAP_CONNECTION.session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/"
+                         "subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpEQUIPMENT_H/"
+                         "ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0233/cntlG_CNTR_HDR_EQUIPMENT/shellcont/shell"
+                         ).currentCellColumn = "MATNR"
         # SAP_CONNECTION.session.findById("wnd[0]/usr/ctxtVORG").text = service_order
         # SAP_CONNECTION.session.findById("wnd[0]").sendVKey(0)
         # 
-        # pn = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpDESC/ssubDETAIL:SAPLITO0:0115/txtITOBJ-MATXT").text
-        # sn = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpDESC/ssubDETAIL:SAPLITO0:0115/txtITOB-SERGE").text
+        pn = SAP_CONNECTION.session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/"
+                              "subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpEQUIPMENT_H/"
+                              "ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0233/cntlG_CNTR_HDR_EQUIPMENT/shellcont/shell"
+                              ).getCellValue(0, "MATNR")
+        sn = SAP_CONNECTION.session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/"
+                              "subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpEQUIPMENT_H/"
+                              "ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0233/cntlG_CNTR_HDR_EQUIPMENT/shellcont/shell"
+                              ).getCellValue(0, "SERNR")
         # op_comments = SAP_CONNECTION.session.findById("wnd[0]/usr/tabsMAIN/tabpPROB/ssubDETAIL:SAPLITO0:0114/txtVIQMEL-QMTXT").text
         
         # For this example, we'll simulate the data but in a real system, the above code would
@@ -127,8 +137,8 @@ def simulate_service_order_data(service_order):
     # Create a realistic looking but fake data set
     data = {
         'service_order': service_order,
-        'part_number': f"MK-{service_order[:3]}-{service_order[-2:]}",
-        'serial_number': f"SN{service_order}",
+        'pn': f"MK-{service_order[:3]}-{service_order[-2:]}",
+        'sn': f"SN{service_order}",
         'equipment': f"EQ-{service_order}",
         'customer': "CUSTOMER NAME",
         'op_comments': "Service required due to unit failure in field. Customer requested express processing.",
@@ -222,21 +232,21 @@ def automation_wizard():
     steps = {
         1: {'title': 'Part Number Verification', 
             'question': 'Does the Part Number match the ID plate on the unit and the outgoing Part Number in SAP?',
-            'pn': order_data['part_number']
+            'pn': order_data['pn']
            },
         2: {'title': 'Serial Number Verification', 
             'question': 'Does the Serial Number match the ID plate on the unit and the outgoing Serial Number in SAP?',
-            'sn': order_data['serial_number']
+            'sn': order_data['sn']
            },
         3: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Part Number from the Unit being inspected to verify:',
             'input_type': 'part_number',
-            'expected': order_data['part_number']
+            'expected': order_data['pn']
            },
         4: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Serial Number from the Unit being inspected to verify:',
             'input_type': 'serial_number',
-            'expected': order_data['serial_number']
+            'expected': order_data['sn']
            },
         5: {'title': 'Operator Comments', 
             'question': f'Have you verified the operator comments to ensure there are no mismatches or discrepancies compared to actual repairs?\n\nOperator Comments: "{order_data["op_comments"]}"'
