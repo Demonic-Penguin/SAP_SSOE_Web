@@ -320,6 +320,45 @@ def extract_sap_data(service_order, output_file):
                                 continue
             except Exception as e:
                 print(f"Error with IW32 transaction: {e}")
+
+        # Extract operator comments from ZIWBN or IW32
+        try:
+            comments_field = session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpSERORDER_H/ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0211/txtYAFS_ZIWBN_HEADER-COMMENTS")
+            data['op_comments'] = comments_field.text if comments_field else ""
+        except:
+            try:
+                comments_field = session.findById("wnd[0]/usr/tabsTABSTRIP/tabpT\\01/ssubSUB_DATA:SAPLIQS0:7235/subGENERAL:SAPLIQS0:7212/txtVIQMEL-QMTXT")
+                data['op_comments'] = comments_field.text if comments_field else ""
+            except:
+                data['op_comments'] = "No comments found"
+
+        # Extract mod status
+        try:
+            mod_field = session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpMOD/ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0215/txtYAFS_ZIWBN_MOD-STATUS")
+            data['mod_status'] = mod_field.text if mod_field else "No mod status found"
+        except:
+            data['mod_status'] = "No mod status found"
+
+        # Get authorization documents
+        try:
+            auth_grid = session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpDOCS/ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0214/cntlG_CNTR_HDR_DOCS/shellcont/shell")
+            data['auth_documents'] = [auth_grid.getCellValue(i, "DOC_NUM") for i in range(auth_grid.RowCount)]
+        except:
+            data['auth_documents'] = []
+
+        # Get notifications (Z8)
+        try:
+            notif_grid = session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpNOTIF/ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0213/cntlG_CNTR_HDR_NOTIF/shellcont/shell")
+            data['notifications'] = [notif_grid.getCellValue(i, "QMNUM") for i in range(notif_grid.RowCount)]
+        except:
+            data['notifications'] = []
+
+        # Get test sheets
+        try:
+            test_grid = session.findById("wnd[0]/usr/subSUB1:SAPLYAFF_ZIWBNGUI:0011/subSUB2:SAPLYAFF_ZIWBNGUI:0200/subSUB2:SAPLYAFF_ZIWBNGUI:0202/tabsG_HEADER_TBSTRP_CTRL/tabpTESTS/ssubG_IWB_HEADER:SAPLYAFF_ZIWBNGUI:0216/cntlG_CNTR_HDR_TESTS/shellcont/shell")
+            data['test_sheets'] = [test_grid.getCellValue(i, "TEST_NUM") for i in range(test_grid.RowCount)]
+        except:
+            data['test_sheets'] = []
         
         # Make sure we have values for required fields
         if not data['part_number']:
@@ -591,6 +630,9 @@ def run_automation():
     service_order = request.form.get('service_order', '')
     if not service_order:
         return redirect(url_for('index', error='Please enter a service order number'))
+
+    # Add a small delay to ensure the spinner is visible
+    time.sleep(1)
     
     # Store the service order number in session for the wizard
     session['service_order'] = service_order

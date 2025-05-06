@@ -18,15 +18,28 @@ document.addEventListener('DOMContentLoaded', function() {
         serviceOrderInput.focus();
     }
     
-    // Add confirmation for "No" responses in the wizard
-    const noButtons = document.querySelectorAll('button[name="response"][value="no"]');
-    noButtons.forEach(button => {
+    // Add confirmation for responses in the wizard
+    const responseButtons = document.querySelectorAll('button[name="response"]');
+    responseButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-            if (!confirm('Are you sure you want to select "No"? This may terminate the SSOE process. If you are on Step 16, please ignore this warning.')) {
-                e.preventDefault();
+            const currentStep = parseInt(document.querySelector('input[name="current_step"]').value);
+            const isYesResponse = button.value === 'yes';
+            
+            // For step 16, confirm only on "yes" response
+            if (currentStep === 16 && isYesResponse) {
+                if (!confirm('Are you sure you want to select "Yes"? This indicates test failures and will terminate the SSOE process.')) {
+                    e.preventDefault();
+                }
+            }
+            // For all other steps, confirm on "no" response
+            else if (currentStep !== 16 && !isYesResponse) {
+                if (!confirm('Are you sure you want to select "No"? This will terminate the SSOE process.')) {
+                    e.preventDefault();
+                }
             }
         });
     });
+    
     
     // Enhance input field validation for part numbers and serial numbers
     const manualInput = document.getElementById('manual_input');

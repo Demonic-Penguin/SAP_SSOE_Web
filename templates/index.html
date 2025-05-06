@@ -77,9 +77,23 @@
                         <button type="submit" id="submitButton" class="btn btn-info btn-lg text-dark fw-bold">
                             <i class="fas fa-play-circle me-2"></i> Start SSOE Process
                         </button>
-                        <div id="loadingSpinner" class="spinner"></div>
+                        <div id="loadingSpinner" class="d-none text-center mt-3">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2 text-info">
+                                Processing service order...
+                            </div>
+                        </div>
                     </div>
                 </form>
+                
+                <script>
+                    document.querySelector('form').addEventListener('submit', function() {
+                        document.getElementById('submitButton').disabled = true;
+                        document.getElementById('loadingSpinner').classList.remove('d-none');
+                    });
+                </script>
             </div>
         </div>
         
@@ -228,7 +242,7 @@
                 const statusBadge = statusBanner.querySelector('.badge');
                 const statusText = statusBanner.querySelector('small');
                 
-                if (data.status === 'connected') {
+                if (data.status === 'enabled') {
                     statusBanner.classList.remove('border-info');
                     statusBanner.classList.add('border-success');
                     statusIcon.className = 'fas fa-plug text-success fa-2x';
@@ -256,6 +270,18 @@
             })
             .catch(error => {
                 console.error('Error checking SAP status:', error);
+                // On error, show simulation mode
+                const statusBanner = document.querySelector('.card:first-child');
+                const statusIcon = statusBanner.querySelector('i:first-child');
+                const statusBadge = statusBanner.querySelector('.badge');
+                const statusText = statusBanner.querySelector('small');
+                
+                statusBanner.classList.remove('border-success');
+                statusBanner.classList.add('border-info');
+                statusIcon.className = 'fas fa-laptop-code text-info fa-2x';
+                statusBadge.className = 'badge bg-info text-dark';
+                statusBadge.innerHTML = '<i class="fas fa-desktop me-1"></i> Simulation Mode';
+                statusText.textContent = 'Using simulated SAP environment';
             });
     }
 </script>
