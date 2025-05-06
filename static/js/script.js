@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const noButtons = document.querySelectorAll('button[name="response"][value="no"]');
     noButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-            if (!confirm('Are you sure you want to select "No"? This may terminate the SSOE process.')) {
+            if (!confirm('Are you sure you want to select "No"? This may terminate the SSOE process. If you are on Step 16, please ignore this warning.')) {
                 e.preventDefault();
             }
         });

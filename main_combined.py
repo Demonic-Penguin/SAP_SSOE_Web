@@ -559,7 +559,7 @@ def index():
     # Sort by modification time (newest first)
     data_files.sort(key=lambda x: x['modified'], reverse=True)
     
-    return render_template('index_sap_enabled.html', 
+    return render_template('index.html', 
                           sap_status=sap_status,
                           is_windows=IS_WINDOWS,
                           data_files=data_files[:5])  # Show up to 5 most recent files
@@ -575,7 +575,7 @@ def sap_status():
     if IS_WINDOWS:
         return jsonify({
             'status': 'enabled',
-            'message': 'SAP Data Extraction Enabled',
+            'message': 'YEP',
             'data_files': data_file_count
         })
     else:
@@ -646,13 +646,13 @@ def automation_wizard():
            },
         3: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Part Number from the Unit being inspected to verify:',
-            'input_type': 'part_number',
-            'expected': order_data.get('part_number', 'Unknown')
+            'input_type': 'manual_entry',
+            'part_number': order_data.get('part_number', 'Unknown')
            },
         4: {'title': 'Manual Entry Verification', 
             'question': 'Please enter the Serial Number from the Unit being inspected to verify:',
-            'input_type': 'serial_number',
-            'expected': order_data.get('serial_number', 'Unknown')
+            'input_type': 'manual_entry',
+            'serial_number': order_data.get('serial_number', 'Unknown')
            },
         5: {'title': 'Operator Comments', 
             'question': f'Have you verified the operator comments to ensure there are no mismatches or discrepancies compared to actual repairs?\n\nOperator Comments: "{order_data.get("op_comments", "None")}"'
@@ -712,7 +712,7 @@ def automation_wizard():
     # Get SAP connection mode
     sap_mode = session.get('sap_mode', 'simulation')
     
-    return render_template('wizard_sap_enabled.html', 
+    return render_template('wizard.html', 
                           service_order=service_order,
                           step_data=steps[step],
                           current_step=step,
@@ -739,13 +739,15 @@ def process_step():
     
     # Special handling for manual entry steps
     if current_step == 3:  # Part number verification
-        user_input = request.form.get('manual_input', '')
-        expected = order_data.get('part_number', 'Unknown')
+        user_input = request.form.get('manual_input')
+        print("User input:", user_input)
+        expected = order_data.get('part_number')
+        print("Expected:", expected)
         
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
-                return render_template('wizard_sap_enabled.html',
+                return render_template('wizard.html',
                                       service_order=service_order,
                                       step_data={
                                           'title': 'Part Number Verification - Retry',
@@ -762,15 +764,18 @@ def process_step():
                 return render_template('error.html',
                                      title='Part Number Mismatch',
                                      message=f'The Part Number entered ({user_input}) does not match the expected value from SAP ({expected}). The process has been terminated.')
-    
+        else:
+            next_step = current_step + 1
+            return redirect(url_for('automation_wizard', step=next_step))
+        
     if current_step == 4:  # Serial number verification
         user_input = request.form.get('manual_input', '')
-        expected = order_data.get('serial_number', 'Unknown')
+        expected = order_data.get('serial_number', '')
                 
         if user_input != expected:
             # If first attempt, give another chance
             if 'retry' not in request.form:
-                return render_template('wizard_sap_enabled.html',
+                return render_template('wizard.html',
                                       service_order=service_order,
                                       step_data={
                                           'title': 'Serial Number Verification - Retry',
@@ -787,7 +792,10 @@ def process_step():
                 return render_template('error.html',
                                      title='Serial Number Mismatch',
                                      message=f'The Serial Number entered ({user_input}) does not match the expected value from SAP ({expected}). The process has been terminated.')
-    
+        else:
+            next_step = current_step + 1
+            return redirect(url_for('automation_wizard', step=next_step))
+        
     # For yes/no questions
     if response.lower() == 'no':
         # Step 16 is special: "Does test sheet show failures?" - "No" is good
@@ -871,6 +879,8 @@ if __name__ == '__main__':
     print(f"Platform: {platform.system()}")
     print(f"SAP Data Extraction: {'Enabled' if IS_WINDOWS else 'Disabled (Not Windows)'}")
     print(f"Data directory: {SAP_DATA_DIR}")
+
+    sap_status = "SAP Data Extraction Enabled"
     
     # Check for existing data files
     if os.path.exists(SAP_DATA_DIR):
